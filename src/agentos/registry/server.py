@@ -76,6 +76,7 @@ def create_app() -> FastAPI:
     # In-memory stores (replace with DB in production)
     agents: Dict[str, Agent] = {}
     logs: List[AgentLog] = []
+    tools: Dict[str, ToolRecord] = {}
 
     # -----------------------------------------------------------------------
     # Health
