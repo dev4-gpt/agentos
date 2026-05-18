@@ -185,7 +185,86 @@ def create_app() -> FastAPI:
         """Get activity logs for an agent."""
         return [l for l in logs if l.agent_id == agent_id]
 
+    # -----------------------------------------------------------------------
+    # Global Tools registry (standalone, not agent-scoped)
+    # -----------------------------------------------------------------------
+
+    @app.get("/tools", tags=["tools"])
+    async def list_tools_global():
+        """List all registered tools."""
+        return {"tools": list(tools.values())}
+
+    @app.post("/tools", status_code=201, tags=["tools"])
+    async def register_tool_global(tool: Tool):
+        """Register a new tool."""
+        if not tool.id:
+            tool.id = str(uuid.uuid4())
+        tool.created_at = datetime.utcnow().isoformat() + "Z"
+        tools[tool.id] = tool
+        return tool
+
+    @app.get("/tools/{tool_id}", tags=["tools"])
+    async def get_tool_global(tool_id: str):
+        """Get a tool by ID."""
+        if tool_id not in tools:
+            raise HTTPException(status_code=404, detail=f"Tool '{tool_id}' not found")
+        return tools[tool_id]
+
+    @app.delete("/tools/{tool_id}", tags=["tools"])
+    async def delete_tool_global(tool_id: str):
+        """Delete a tool by ID."""
+        if tool_id not in tools:
+            raise HTTPException(status_code=404, detail=f"Tool '{tool_id}' not found")
+        del tools[tool_id]
+        return {"deleted": tool_id}
+
+    # -----------------------------------------------------------------------
+    # MCP (Model Context Protocol) endpoints
+    # -----------------------------------------------------------------------
+
+    @app.post("/mcp/initialize", tags=["mcp"])
+    async def mcp_initialize(payload: dict):
+        """MCP initialize handshake."""
+        return {
+            "protocolVersion": payload.get("protocolVersion", "2024-11-05"),
+            "capabilities": {"tools": {"listChanged": True}, "agents": {}},
+            "serverInfo": {"name": "agentos-registry", "version": "1.0.0"},
+        }
+
+    @app.get("/mcp/tools/list", tags=["mcp"])
+    async def mcp_list_tools():
+        """MCP tools/list - return tools in MCP format."""
+        mcp_tools = [
+            {
+                "name": t.name,
+                "description": t.description,
+                "inputSchema": t.input_schema if hasattr(t, "input_schema") else {},
+            }
+            for t in tools.values()
+        ]
+        return {"tools": mcp_tools}
+
+    @app.post("/mcp/tools/call", tags=["mcp"])
+    async def mcp_call_tool(payload: dict):
+        """MCP tools/call - route a tool invocation."""
+        tool_name = payload.get("name")
+        arguments = payload.get("arguments", {})
+        tool = next((t for t in tools.values() if t.name == tool_name), None)
+        if tool is None:
+            raise HTTPException(status_code=404, detail=f"Tool '{tool_name}' not found")
+        return {
+            "content": [{"type": "text", "text": f"Tool '{tool_name}' invoked with {arguments}"}],
+            "isError": False,
+        }
+
+    @app.get("/mcp/agents/list", tags=["mcp"])
+    async def mcp_list_agents():
+        """MCP agents/list - return agents in MCP format."""
+        return {"agents": list(agents.values())}
+
     return app
+
+
 
 
 # ---------------------------------------------------------------------------
