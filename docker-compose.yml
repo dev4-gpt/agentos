@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  registry:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - LOG_LEVEL=info
+      - ENVIRONMENT=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - agentos
+
+  mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "-m", "agentos.cli.main", "start-mcp", "--registry", "http://registry:8000"]
+    depends_on:
+      registry:
+        condition: service_healthy
+    environment:
+      - REGISTRY_URL=http://registry:8000
+    restart: unless-stopped
+    networks:
+      - agentos
+    stdin_open: true
+    tty: true
+
+networks:
+  agentos:
+    driver: bridge
