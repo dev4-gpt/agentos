@@ -1,5 +1,4 @@
 """AgentOS Registry API Server.
-
 FastAPI application implementing the Agent Registry API as defined in
 api/spec.yaml. Provides CRUD operations for agents, tools, and capabilities.
 """
@@ -19,7 +18,6 @@ from agentos.models import (
     Agent,
     AgentListResponse,
     AgentLog,
-    
     AgentStatus,
     Capability,
     HealthResponse,
@@ -30,6 +28,7 @@ from agentos.models import (
 # ---------------------------------------------------------------------------
 # Lightweight Pydantic model for standalone tool registration
 # ---------------------------------------------------------------------------
+
 
 class ToolRecord(BaseModel):
     """Standalone tool registration record (global /tools endpoints)."""
@@ -81,7 +80,6 @@ def create_app() -> FastAPI:
     # -----------------------------------------------------------------------
     # Health
     # -----------------------------------------------------------------------
-
     @app.get("/health", response_model=HealthResponse, tags=["system"])
     async def health() -> HealthResponse:
         """Return API health status."""
@@ -94,7 +92,6 @@ def create_app() -> FastAPI:
     # -----------------------------------------------------------------------
     # Agents
     # -----------------------------------------------------------------------
-
     @app.get("/agents", response_model=AgentListResponse, tags=["agents"])
     async def list_agents(
         page: int = Query(default=1, ge=1),
@@ -119,7 +116,14 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=409, detail=f"Agent '{agent.id}' already exists")
         agent = agent.model_copy(update={"created_at": datetime.utcnow(), "updated_at": datetime.utcnow()})
         agents[agent.id] = agent
-        logs.append(AgentLog(agent_id=agent.id, action="register", status="success", message=f"Agent '{agent.name}' registered"))
+        logs.append(
+            AgentLog(
+                agent_id=agent.id,
+                action="register",
+                status="success",
+                message=f"Agent '{agent.name}' registered",
+            )
+        )
         return agent
 
     @app.get("/agents/{agent_id}", response_model=Agent, tags=["agents"])
@@ -139,7 +143,14 @@ def create_app() -> FastAPI:
         updated_data["updated_at"] = datetime.utcnow()
         updated = existing.model_copy(update=updated_data)
         agents[agent_id] = updated
-        logs.append(AgentLog(agent_id=agent_id, action="update", status="success", message=f"Agent '{agent_id}' updated"))
+        logs.append(
+            AgentLog(
+                agent_id=agent_id,
+                action="update",
+                status="success",
+                message=f"Agent '{agent_id}' updated",
+            )
+        )
         return updated
 
     @app.delete("/agents/{agent_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["agents"])
@@ -148,12 +159,18 @@ def create_app() -> FastAPI:
         if agent_id not in agents:
             raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
         del agents[agent_id]
-        logs.append(AgentLog(agent_id=agent_id, action="deregister", status="success", message=f"Agent '{agent_id}' removed"))
+        logs.append(
+            AgentLog(
+                agent_id=agent_id,
+                action="deregister",
+                status="success",
+                message=f"Agent '{agent_id}' removed",
+            )
+        )
 
     # -----------------------------------------------------------------------
     # Tools
     # -----------------------------------------------------------------------
-
     @app.get("/agents/{agent_id}/tools", response_model=List[Tool], tags=["tools"])
     async def list_tools(agent_id: str) -> List[Tool]:
         """List all tools for an agent."""
@@ -186,7 +203,6 @@ def create_app() -> FastAPI:
     # -----------------------------------------------------------------------
     # Capabilities
     # -----------------------------------------------------------------------
-
     @app.get("/agents/{agent_id}/capabilities", response_model=List[Capability], tags=["capabilities"])
     async def list_capabilities(agent_id: str) -> List[Capability]:
         """List all capabilities for an agent."""
@@ -197,23 +213,21 @@ def create_app() -> FastAPI:
     # -----------------------------------------------------------------------
     # Logs
     # -----------------------------------------------------------------------
-
     @app.get("/agents/{agent_id}/logs", response_model=List[AgentLog], tags=["logs"])
     async def get_logs(agent_id: str) -> List[AgentLog]:
         """Get activity logs for an agent."""
-            return [log for log in logs if log.agent_id == agent_id]
+        return [log for log in logs if log.agent_id == agent_id]
 
     # -----------------------------------------------------------------------
     # Global Tools registry (standalone, not agent-scoped)
     # -----------------------------------------------------------------------
-
     @app.get("/tools", tags=["tools"])
-    async def list_tools_global():
+    async def list_tools_global() -> dict:
         """List all registered tools."""
         return {"tools": list(tools.values())}
 
     @app.post("/tools", status_code=201, tags=["tools"])
-    async def register_tool_global(tool: ToolRecord):
+    async def register_tool_global(tool: ToolRecord) -> ToolRecord:
         """Register a new tool."""
         if not tool.id:
             tool.id = str(uuid.uuid4())
@@ -222,14 +236,14 @@ def create_app() -> FastAPI:
         return tool
 
     @app.get("/tools/{tool_id}", tags=["tools"])
-    async def get_tool_global(tool_id: str):
+    async def get_tool_global(tool_id: str) -> ToolRecord:
         """Get a tool by ID."""
         if tool_id not in tools:
             raise HTTPException(status_code=404, detail=f"Tool '{tool_id}' not found")
         return tools[tool_id]
 
     @app.delete("/tools/{tool_id}", tags=["tools"])
-    async def delete_tool_global(tool_id: str):
+    async def delete_tool_global(tool_id: str) -> dict:
         """Delete a tool by ID."""
         if tool_id not in tools:
             raise HTTPException(status_code=404, detail=f"Tool '{tool_id}' not found")
@@ -239,7 +253,6 @@ def create_app() -> FastAPI:
     # -----------------------------------------------------------------------
     # MCP (Model Context Protocol) endpoints
     # -----------------------------------------------------------------------
-
     @app.post("/mcp/initialize", tags=["mcp"])
     async def mcp_initialize(payload: dict):
         """MCP initialize handshake."""
@@ -250,7 +263,7 @@ def create_app() -> FastAPI:
         }
 
     @app.get("/mcp/tools/list", tags=["mcp"])
-    async def mcp_list_tools():
+    async def mcp_list_tools() -> dict:
         """MCP tools/list - return tools in MCP format."""
         mcp_tools = [
             {
@@ -276,17 +289,14 @@ def create_app() -> FastAPI:
         }
 
     @app.get("/mcp/agents/list", tags=["mcp"])
-    async def mcp_list_agents():
+    async def mcp_list_agents() -> dict:
         """MCP agents/list - return agents in MCP format."""
         return {"agents": list(agents.values())}
 
     return app
 
 
-
-
 # ---------------------------------------------------------------------------
 # Application instance (used by uvicorn)
 # ---------------------------------------------------------------------------
-
 app = create_app()
