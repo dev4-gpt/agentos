@@ -1,5 +1,6 @@
 """AgentOS CLI - Command-line interface for the AgentOS Registry."""
 from __future__ import annotations
+from typing import Optional
 
 import asyncio
 import json
