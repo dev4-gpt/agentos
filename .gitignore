@@ -1,0 +1,56 @@
+# Node dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.pnp
+
+# Build output
+dist/
+build/
+out/
+
+# TypeScript
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Playwright
+playwright-report/
+test-results/
+
+# Logs
+logs/
+*.log
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# Codespaces temporary
+.codespaces/
+
+# MCP server build
+mcp-server/dist/
+
+# CLI build
+cli/dist/
