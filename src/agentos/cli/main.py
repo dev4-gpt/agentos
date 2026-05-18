@@ -3,12 +3,9 @@ from __future__ import annotations
 
 import asyncio
 import json
-import sys
-from typing import Optional
 
 import typer
 from rich.console import Console
-from rich.table import Table
 
 from ..sdk import AgentOSClient
 
