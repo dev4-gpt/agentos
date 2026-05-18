@@ -26,6 +26,23 @@ from agentos.models import (
     Tool,
 )
 
+
+# ---------------------------------------------------------------------------
+# Lightweight Pydantic model for standalone tool registration
+# ---------------------------------------------------------------------------
+
+class ToolRecord(BaseModel):
+    """Standalone tool registration record (global /tools endpoints)."""
+
+    id: Optional[str] = None
+    name: str
+    description: str
+    input_schema: Optional[Dict[str, Any]] = None
+    endpoint: Optional[str] = None
+    protocols: Optional[List[str]] = None
+    created_at: Optional[str] = None
+
+
 # ---------------------------------------------------------------------------
 # App factory
 # ---------------------------------------------------------------------------
@@ -195,7 +212,7 @@ def create_app() -> FastAPI:
         return {"tools": list(tools.values())}
 
     @app.post("/tools", status_code=201, tags=["tools"])
-    async def register_tool_global(tool: Tool):
+    async def register_tool_global(tool: ToolRecord):
         """Register a new tool."""
         if not tool.id:
             tool.id = str(uuid.uuid4())
