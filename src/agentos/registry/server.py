@@ -201,7 +201,7 @@ def create_app() -> FastAPI:
     @app.get("/agents/{agent_id}/logs", response_model=List[AgentLog], tags=["logs"])
     async def get_logs(agent_id: str) -> List[AgentLog]:
         """Get activity logs for an agent."""
-        return [l for l in logs if l.agent_id == agent_id]
+            return [log for log in logs if log.agent_id == agent_id]
 
     # -----------------------------------------------------------------------
     # Global Tools registry (standalone, not agent-scoped)
