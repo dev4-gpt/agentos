@@ -1,122 +1,165 @@
 """AgentOS MCP Server.
 
-Implements a Model Context Protocol (MCP) server that exposes all agents and
-their tools as MCP-compatible tools, resources, and prompts.
+Implements a Model Context Protocol (MCP) server that bridges the AgentOS
+Registry API with MCP-compatible AI clients (Claude, etc.).
 """
-
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from mcp.server import Server
-from mcp.server.stdio import stdio_server
-from mcp import types as mcp_types
-
-from agentos.models import Agent, Tool
-from agentos.sdk import AgentOSClient
+import httpx
 
 logger = logging.getLogger(__name__)
 
 
-def create_mcp_server(registry_url: str = "http://localhost:8000") -> Server:
-    """Create and configure the MCP server.
+# ---------------------------------------------------------------------------
+# Registry HTTP client (thin wrapper around the REST API)
+# ---------------------------------------------------------------------------
 
-    Args:
-        registry_url: URL of the AgentOS Registry API.
+class RegistryClient:
+    """Thin async HTTP client for the AgentOS Registry API."""
 
-    Returns:
-        Configured MCP Server instance.
+    def __init__(self, base_url: str = "http://localhost:8000") -> None:
+        self.base_url = base_url.rstrip("/")
+
+    async def list_tools(self) -> List[Dict[str, Any]]:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{self.base_url}/tools")
+            resp.raise_for_status()
+            return resp.json().get("tools", [])
+
+    async def get_tool(self, tool_id: str) -> Dict[str, Any]:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{self.base_url}/tools/{tool_id}")
+            resp.raise_for_status()
+            return resp.json()
+
+    async def list_agents(self) -> List[Dict[str, Any]]:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{self.base_url}/agents")
+            resp.raise_for_status()
+            return resp.json().get("agents", [])
+
+
+# ---------------------------------------------------------------------------
+# MCP handler functions (used by registry /mcp/* endpoints AND standalone)
+# ---------------------------------------------------------------------------
+
+def build_mcp_tool_entry(tool: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert a ToolRecord dict to MCP tool format."""
+    return {
+        "name": tool.get("name", ""),
+        "description": tool.get("description", ""),
+        "inputSchema": tool.get("input_schema") or {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    }
+
+
+def mcp_initialize_response(protocol_version: str = "2024-11-05") -> Dict[str, Any]:
+    """Return a standard MCP initialize response payload."""
+    return {
+        "protocolVersion": protocol_version,
+        "capabilities": {
+            "tools": {"listChanged": True},
+            "agents": {},
+        },
+        "serverInfo": {
+            "name": "agentos-registry",
+            "version": "1.0.0",
+        },
+    }
+
+
+def mcp_tool_call_response(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+    """Build a minimal MCP tool call response."""
+    return {
+        "content": [
+            {
+                "type": "text",
+                "text": f"Tool '{tool_name}' invoked with arguments: {arguments}",
+            }
+        ],
+        "isError": False,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Standalone async runner (stdio-based MCP server via httpx bridge)
+# ---------------------------------------------------------------------------
+
+async def run_stdio_server(registry_url: str = "http://localhost:8000") -> None:
+    """Run a simple line-delimited JSON MCP server over stdio.
+
+    Each line of stdin is a JSON-RPC 2.0 request; responses are written to
+    stdout.  This is the minimal transport required by the MCP spec for
+    local tool use with Claude Desktop.
     """
-    server = Server("agentos-mcp")
-    client = AgentOSClient(base_url=registry_url)
+    import json
+    import sys
 
-    @server.list_tools()
-    async def list_tools() -> List[mcp_types.Tool]:
-        """List all tools from all registered agents."""
-        mcp_tools: List[mcp_types.Tool] = []
+    registry = RegistryClient(base_url=registry_url)
+    logger.info("AgentOS MCP stdio server started (registry=%s)", registry_url)
+
+    for raw_line in sys.stdin:
+        raw_line = raw_line.strip()
+        if not raw_line:
+            continue
         try:
-            response = await client.list_agents_async()
-            agents = response.agents
-            for agent in agents:
-                for tool in agent.tools:
-                    input_schema = {}
-                    if tool.inputSchema:
-                        input_schema = tool.inputSchema.model_dump()
-                    elif tool.input_schema:
-                        input_schema = tool.input_schema.model_dump()
-                    else:
-                        input_schema = {"type": "object", "properties": {}}
+            request = json.loads(raw_line)
+        except json.JSONDecodeError as exc:
+            response = {
+                "jsonrpc": "2.0",
+                "id": None,
+                "error": {"code": -32700, "message": f"Parse error: {exc}"},
+            }
+            print(json.dumps(response), flush=True)
+            continue
 
-                    mcp_tools.append(
-                        mcp_types.Tool(
-                            name=f"{agent.id}__{tool.name}",
-                            description=f"[Agent: {agent.name}] {tool.description}",
-                            inputSchema=input_schema,
-                        )
-                    )
-        except Exception as e:
-            logger.error(f"Failed to list tools: {e}")
-        return mcp_tools
+        req_id = request.get("id")
+        method = request.get("method", "")
+        params = request.get("params", {})
 
-    @server.call_tool()
-    async def call_tool(name: str, arguments: Dict[str, Any]) -> List[mcp_types.TextContent]:
-        """Execute a tool via the agent registry."""
         try:
-            parts = name.split("__", 1)
-            if len(parts) != 2:
-                return [mcp_types.TextContent(type="text", text=f"Invalid tool name format: {name}")]
-            agent_id, tool_name = parts
-            result = {"agent_id": agent_id, "tool_name": tool_name, "arguments": arguments, "status": "dispatched"}
-            return [mcp_types.TextContent(type="text", text=json.dumps(result, indent=2))]
-        except Exception as e:
-            logger.error(f"Tool call failed: {e}")
-            return [mcp_types.TextContent(type="text", text=f"Error: {str(e)}")]
-
-    @server.list_resources()
-    async def list_resources() -> List[mcp_types.Resource]:
-        """List all registered agents as resources."""
-        resources: List[mcp_types.Resource] = []
-        try:
-            response = await client.list_agents_async()
-            for agent in response.agents:
-                resources.append(
-                    mcp_types.Resource(
-                        uri=f"agentos://agents/{agent.id}",
-                        name=agent.name,
-                        description=agent.description or f"Agent: {agent.name}",
-                        mimeType="application/json",
-                    )
+            if method == "initialize":
+                result = mcp_initialize_response(
+                    params.get("protocolVersion", "2024-11-05")
                 )
-        except Exception as e:
-            logger.error(f"Failed to list resources: {e}")
-        return resources
+            elif method == "tools/list":
+                raw_tools = await registry.list_tools()
+                result = {"tools": [build_mcp_tool_entry(t) for t in raw_tools]}
+            elif method == "tools/call":
+                tool_name = params.get("name", "")
+                arguments = params.get("arguments", {})
+                result = mcp_tool_call_response(tool_name, arguments)
+            elif method == "agents/list":
+                agents = await registry.list_agents()
+                result = {"agents": agents}
+            else:
+                raise ValueError(f"Unknown method: {method}")
 
-    @server.read_resource()
-    async def read_resource(uri: str) -> str:
-        """Read an agent resource by URI."""
-        try:
-            agent_id = uri.split("/")[-1]
-            agent = await client.get_agent_async(agent_id)
-            return agent.model_dump_json(indent=2)
-        except Exception as e:
-            return json.dumps({"error": str(e)})
+            response = {"jsonrpc": "2.0", "id": req_id, "result": result}
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Error handling method %s", method)
+            response = {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {"code": -32603, "message": str(exc)},
+            }
 
-    return server
-
-
-async def run_mcp_server(registry_url: str = "http://localhost:8000") -> None:
-    """Run the MCP server using stdio transport."""
-    server = create_mcp_server(registry_url)
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(read_stream, write_stream, server.create_initialization_options())
+        print(json.dumps(response), flush=True)
 
 
 def main() -> None:
-    """Entry point for running the MCP server."""
-    asyncio.run(run_mcp_server())
+    """Entry point for the AgentOS MCP stdio server."""
+    import os
+
+    registry_url = os.environ.get("AGENTOS_REGISTRY_URL", "http://localhost:8000")
+    asyncio.run(run_stdio_server(registry_url=registry_url))
 
 
 if __name__ == "__main__":
