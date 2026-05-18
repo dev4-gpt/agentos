@@ -1,0 +1,265 @@
+openapi: 3.0.3
+info:
+  title: AgentOS Registry API
+  description: |
+    Machine-readable tool registry for autonomous AI agents.
+    Provides tool discovery, authentication, and execution for SaaS integrations.
+  version: 1.0.0
+  contact:
+    name: AgentOS
+    url: https://github.com/dev4-gpt/agentos
+  license:
+    name: MIT
+
+servers:
+  - url: https://registry.agentos.io/v1
+    description: Production
+  - url: http://localhost:3000/v1
+    description: Local development
+
+paths:
+  /tools:
+    get:
+      summary: List all registered tools
+      operationId: listTools
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filter by tool category
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Maximum results to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Pagination offset
+      responses:
+        '200':
+          description: List of tools
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tools:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tool'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+  /tools/{toolId}:
+    get:
+      summary: Get a specific tool definition
+      operationId: getTool
+      parameters:
+        - name: toolId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tool definition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tool'
+        '404':
+          description: Tool not found
+
+  /tools/search:
+    post:
+      summary: Semantic search for tools
+      operationId: searchTools
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                intent:
+                  type: string
+                  description: Natural language intent
+                categories:
+                  type: array
+                  items:
+                    type: string
+                limit:
+                  type: integer
+                  default: 10
+      responses:
+        '200':
+          description: Ranked search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        tool:
+                          $ref: '#/components/schemas/Tool'
+                        relevanceScore:
+                          type: number
+
+  /integrations:
+    get:
+      summary: List all SaaS integrations
+      operationId: listIntegrations
+      responses:
+        '200':
+          description: List of integrations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  integrations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Integration'
+
+  /schemas/tool:
+    get:
+      summary: Get canonical tool JSON Schema
+      operationId: getToolSchema
+      responses:
+        '200':
+          description: JSON Schema for tools
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolSchema'
+
+  /schemas/registry:
+    get:
+      summary: Get registry JSON Schema
+      operationId: getRegistrySchema
+      responses:
+        '200':
+          description: JSON Schema for registry entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrySchema'
+
+components:
+  schemas:
+    Tool:
+      type: object
+      required:
+        - toolId
+        - name
+        - description
+        - inputSchema
+        - integrationId
+      properties:
+        toolId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        inputSchema:
+          type: object
+          description: JSON Schema for tool inputs
+        outputSchema:
+          type: object
+          description: JSON Schema for tool outputs
+        authentication:
+          $ref: '#/components/schemas/AuthConfig'
+        capabilities:
+          type: array
+          items:
+            type: string
+            enum:
+              - idempotent
+              - rate_limited
+              - async_supported
+              - streaming
+        mcpToolName:
+          type: string
+        categories:
+          type: array
+          items:
+            type: string
+        integrationId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AuthConfig:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - api_key
+            - oauth2
+            - bearer
+            - service_auth
+        scopes:
+          type: array
+          items:
+            type: string
+        onboardingFlow:
+          type: string
+          enum:
+            - paste_token
+            - oauth_redirect
+            - guided_steps
+            - enterprise_sso
+
+    Integration:
+      type: object
+      required:
+        - id
+        - name
+        - provider
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        provider:
+          type: string
+        logoUrl:
+          type: string
+          format: uri
+        toolCount:
+          type: integer
+        authType:
+          type: string
+        apiDocsUrl:
+          type: string
+          format: uri
+
+    ToolSchema:
+      type: object
+      description: Canonical JSON Schema for all AgentOS tools
+
+    RegistrySchema:
+      type: object
+      description: JSON Schema for registry entries
