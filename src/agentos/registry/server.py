@@ -19,7 +19,7 @@ from agentos.models import (
     Agent,
     AgentListResponse,
     AgentLog,
-    AgentResponse,
+    
     AgentStatus,
     Capability,
     HealthResponse,
