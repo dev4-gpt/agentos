@@ -4,6 +4,7 @@ from typing import Optional
 
 import asyncio
 import json
+import os
 
 import typer
 from rich.console import Console
@@ -109,17 +110,18 @@ def register_tool(
     registry_url: str = typer.Option("http://localhost:8000", "--registry", "-r", help="Registry URL"),
 ) -> None:
     """Register a standalone tool in the global tools registry."""
+    input_schema: dict = {}
+    if schema_file:
+        with open(schema_file) as f:
+            input_schema = json.load(f)
+    payload = {
+        "name": name,
+        "description": description,
+        "input_schema": input_schema,
+        "endpoint": endpoint,
+    }
+
     async def _run() -> None:
-        input_schema = {}
-        if schema_file:
-            with open(schema_file) as f:
-                input_schema = json.load(f)
-        payload: dict = {
-            "name": name,
-            "description": description,
-            "input_schema": input_schema,
-            "endpoint": endpoint,
-        }
         async with get_client(registry_url) as client:
             result = await client.register_tool(payload)
             _print_json(result)
@@ -173,8 +175,9 @@ def mcp_call(
     registry_url: str = typer.Option("http://localhost:8000", "--registry", "-r", help="Registry URL"),
 ) -> None:
     """Call a tool via MCP."""
+    arguments: dict = json.loads(args_json) if args_json else {}
+
     async def _run() -> None:
-        arguments: dict = json.loads(args_json) if args_json else {}
         async with get_client(registry_url) as client:
             result = await client.mcp_call_tool(tool_name, arguments)
             _print_json(result)
@@ -198,7 +201,6 @@ def mcp_serve(
     registry_url: str = typer.Option("http://localhost:8000", "--registry", "-r", help="Registry URL"),
 ) -> None:
     """Serve the MCP stdio server."""
-    import os
     os.environ["AGENTOS_REGISTRY_URL"] = registry_url
     from ..mcp import server as mcp_server
     mcp_server.main()
