@@ -4,7 +4,6 @@ api/spec.yaml. Provides CRUD operations for agents, tools, and capabilities.
 """
 
 from __future__ import annotations
-
 import time
 import uuid
 from datetime import datetime
@@ -23,7 +22,6 @@ from agentos.models import (
     HealthResponse,
     Tool,
 )
-
 
 # ---------------------------------------------------------------------------
 # Lightweight Pydantic model for standalone tool registration
@@ -45,7 +43,6 @@ class ToolRecord(BaseModel):
 # ---------------------------------------------------------------------------
 # App factory
 # ---------------------------------------------------------------------------
-
 _start_time = time.time()
 
 
@@ -105,16 +102,24 @@ def create_app() -> FastAPI:
         total = len(all_agents)
         start = (page - 1) * page_size
         paginated = all_agents[start : start + page_size]
-        return AgentListResponse(agents=paginated, total=total, page=page, page_size=page_size)
+        return AgentListResponse(
+            agents=paginated, total=total, page=page, page_size=page_size
+        )
 
-    @app.post("/agents", response_model=Agent, status_code=status.HTTP_201_CREATED, tags=["agents"])
+    @app.post(
+        "/agents", response_model=Agent, status_code=status.HTTP_201_CREATED, tags=["agents"]
+    )
     async def register_agent(agent: Agent) -> Agent:
         """Register a new agent in the registry."""
         if not agent.id:
             agent = agent.model_copy(update={"id": str(uuid.uuid4())})
         if agent.id in agents:
-            raise HTTPException(status_code=409, detail=f"Agent '{agent.id}' already exists")
-        agent = agent.model_copy(update={"created_at": datetime.utcnow(), "updated_at": datetime.utcnow()})
+            raise HTTPException(
+                status_code=409, detail=f"Agent '{agent.id}' already exists"
+            )
+        agent = agent.model_copy(
+            update={"created_at": datetime.utcnow(), "updated_at": datetime.utcnow()}
+        )
         agents[agent.id] = agent
         logs.append(
             AgentLog(
@@ -130,14 +135,18 @@ def create_app() -> FastAPI:
     async def get_agent(agent_id: str) -> Agent:
         """Retrieve a specific agent by ID."""
         if agent_id not in agents:
-            raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
+            raise HTTPException(
+                status_code=404, detail=f"Agent '{agent_id}' not found"
+            )
         return agents[agent_id]
 
     @app.put("/agents/{agent_id}", response_model=Agent, tags=["agents"])
     async def update_agent(agent_id: str, updates: Agent) -> Agent:
         """Update an existing agent."""
         if agent_id not in agents:
-            raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
+            raise HTTPException(
+                status_code=404, detail=f"Agent '{agent_id}' not found"
+            )
         existing = agents[agent_id]
         updated_data = updates.model_dump(exclude_unset=True)
         updated_data["updated_at"] = datetime.utcnow()
@@ -153,11 +162,15 @@ def create_app() -> FastAPI:
         )
         return updated
 
-    @app.delete("/agents/{agent_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["agents"])
+    @app.delete(
+        "/agents/{agent_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["agents"]
+    )
     async def deregister_agent(agent_id: str) -> None:
         """Remove an agent from the registry."""
         if agent_id not in agents:
-            raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
+            raise HTTPException(
+                status_code=404, detail=f"Agent '{agent_id}' not found"
+            )
         del agents[agent_id]
         logs.append(
             AgentLog(
@@ -175,39 +188,59 @@ def create_app() -> FastAPI:
     async def list_tools(agent_id: str) -> List[Tool]:
         """List all tools for an agent."""
         if agent_id not in agents:
-            raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
+            raise HTTPException(
+                status_code=404, detail=f"Agent '{agent_id}' not found"
+            )
         return agents[agent_id].tools
 
-    @app.post("/agents/{agent_id}/tools", response_model=Tool, status_code=status.HTTP_201_CREATED, tags=["tools"])
+    @app.post(
+        "/agents/{agent_id}/tools", response_model=Tool, status_code=status.HTTP_201_CREATED, tags=["tools"]
+    )
     async def register_tool(agent_id: str, tool: Tool) -> Tool:
         """Register a new tool for an agent."""
         if agent_id not in agents:
-            raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
+            raise HTTPException(
+                status_code=404, detail=f"Agent '{agent_id}' not found"
+            )
         agent = agents[agent_id]
         if any(t.name == tool.name for t in agent.tools):
-            raise HTTPException(status_code=409, detail=f"Tool '{tool.name}' already exists")
+            raise HTTPException(
+                status_code=409, detail=f"Tool '{tool.name}' already exists"
+            )
         updated_tools = agent.tools + [tool]
-        agents[agent_id] = agent.model_copy(update={"tools": updated_tools, "updated_at": datetime.utcnow()})
+        agents[agent_id] = agent.model_copy(
+            update={"tools": updated_tools, "updated_at": datetime.utcnow()}
+        )
         return tool
 
-    @app.get("/agents/{agent_id}/tools/{tool_name}", response_model=Tool, tags=["tools"])
+    @app.get(
+        "/agents/{agent_id}/tools/{tool_name}", response_model=Tool, tags=["tools"]
+    )
     async def get_tool(agent_id: str, tool_name: str) -> Tool:
         """Get a specific tool by name."""
         if agent_id not in agents:
-            raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
+            raise HTTPException(
+                status_code=404, detail=f"Agent '{agent_id}' not found"
+            )
         for t in agents[agent_id].tools:
             if t.name == tool_name:
                 return t
-        raise HTTPException(status_code=404, detail=f"Tool '{tool_name}' not found")
+        raise HTTPException(
+            status_code=404, detail=f"Tool '{tool_name}' not found"
+        )
 
     # -----------------------------------------------------------------------
     # Capabilities
     # -----------------------------------------------------------------------
-    @app.get("/agents/{agent_id}/capabilities", response_model=List[Capability], tags=["capabilities"])
+    @app.get(
+        "/agents/{agent_id}/capabilities", response_model=List[Capability], tags=["capabilities"]
+    )
     async def list_capabilities(agent_id: str) -> List[Capability]:
         """List all capabilities for an agent."""
         if agent_id not in agents:
-            raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
+            raise HTTPException(
+                status_code=404, detail=f"Agent '{agent_id}' not found"
+            )
         return agents[agent_id].capabilities
 
     # -----------------------------------------------------------------------
@@ -239,14 +272,18 @@ def create_app() -> FastAPI:
     async def get_tool_global(tool_id: str) -> ToolRecord:
         """Get a tool by ID."""
         if tool_id not in tools:
-            raise HTTPException(status_code=404, detail=f"Tool '{tool_id}' not found")
+            raise HTTPException(
+                status_code=404, detail=f"Tool '{tool_id}' not found"
+            )
         return tools[tool_id]
 
     @app.delete("/tools/{tool_id}", tags=["tools"])
     async def delete_tool_global(tool_id: str) -> dict:
         """Delete a tool by ID."""
         if tool_id not in tools:
-            raise HTTPException(status_code=404, detail=f"Tool '{tool_id}' not found")
+            raise HTTPException(
+                status_code=404, detail=f"Tool '{tool_id}' not found"
+            )
         del tools[tool_id]
         return {"deleted": tool_id}
 
@@ -282,9 +319,13 @@ def create_app() -> FastAPI:
         arguments = payload.get("arguments", {})
         tool = next((t for t in tools.values() if t.name == tool_name), None)
         if tool is None:
-            raise HTTPException(status_code=404, detail=f"Tool '{tool_name}' not found")
+            raise HTTPException(
+                status_code=404, detail=f"Tool '{tool_name}' not found"
+            )
         return {
-            "content": [{"type": "text", "text": f"Tool '{tool_name}' invoked with {arguments}"}],
+            "content": [
+                {"type": "text", "text": f"Tool '{tool_name}' invoked with {arguments}"}
+            ],
             "isError": False,
         }
 
