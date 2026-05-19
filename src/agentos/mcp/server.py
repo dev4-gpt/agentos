@@ -6,7 +6,10 @@ Registry API with MCP-compatible AI clients (Claude, etc.).
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import os
+import sys
 from typing import Any, Dict, List
 
 import httpx
@@ -17,7 +20,6 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Registry HTTP client (thin wrapper around the REST API)
 # ---------------------------------------------------------------------------
-
 class RegistryClient:
     """Thin async HTTP client for the AgentOS Registry API."""
 
@@ -46,17 +48,13 @@ class RegistryClient:
 # ---------------------------------------------------------------------------
 # MCP handler functions (used by registry /mcp/* endpoints AND standalone)
 # ---------------------------------------------------------------------------
-
 def build_mcp_tool_entry(tool: Dict[str, Any]) -> Dict[str, Any]:
     """Convert a ToolRecord dict to MCP tool format."""
     return {
         "name": tool.get("name", ""),
         "description": tool.get("description", ""),
-        "inputSchema": tool.get("input_schema") or {
-            "type": "object",
-            "properties": {},
-            "required": [],
-        },
+        "inputSchema": tool.get("input_schema")
+        or {"type": "object", "properties": {}, "required": []},
     }
 
 
@@ -64,18 +62,14 @@ def mcp_initialize_response(protocol_version: str = "2024-11-05") -> Dict[str, A
     """Return a standard MCP initialize response payload."""
     return {
         "protocolVersion": protocol_version,
-        "capabilities": {
-            "tools": {"listChanged": True},
-            "agents": {},
-        },
-        "serverInfo": {
-            "name": "agentos-registry",
-            "version": "1.0.0",
-        },
+        "capabilities": {"tools": {"listChanged": True}, "agents": {}},
+        "serverInfo": {"name": "agentos-registry", "version": "1.0.0"},
     }
 
 
-def mcp_tool_call_response(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+def mcp_tool_call_response(
+    tool_name: str, arguments: Dict[str, Any]
+) -> Dict[str, Any]:
     """Build a minimal MCP tool call response."""
     return {
         "content": [
@@ -91,17 +85,13 @@ def mcp_tool_call_response(tool_name: str, arguments: Dict[str, Any]) -> Dict[st
 # ---------------------------------------------------------------------------
 # Standalone async runner (stdio-based MCP server via httpx bridge)
 # ---------------------------------------------------------------------------
-
 async def run_stdio_server(registry_url: str = "http://localhost:8000") -> None:
     """Run a simple line-delimited JSON MCP server over stdio.
 
     Each line of stdin is a JSON-RPC 2.0 request; responses are written to
-    stdout.  This is the minimal transport required by the MCP spec for
+    stdout. This is the minimal transport required by the MCP spec for
     local tool use with Claude Desktop.
     """
-    import json
-    import sys
-
     registry = RegistryClient(base_url=registry_url)
     logger.info("AgentOS MCP stdio server started (registry=%s)", registry_url)
 
@@ -141,7 +131,6 @@ async def run_stdio_server(registry_url: str = "http://localhost:8000") -> None:
                 result = {"agents": agents}
             else:
                 raise ValueError(f"Unknown method: {method}")
-
             response = {"jsonrpc": "2.0", "id": req_id, "result": result}
         except Exception as exc:  # noqa: BLE001
             logger.exception("Error handling method %s", method)
@@ -150,14 +139,11 @@ async def run_stdio_server(registry_url: str = "http://localhost:8000") -> None:
                 "id": req_id,
                 "error": {"code": -32603, "message": str(exc)},
             }
-
         print(json.dumps(response), flush=True)
 
 
 def main() -> None:
     """Entry point for the AgentOS MCP stdio server."""
-    import os
-
     registry_url = os.environ.get("AGENTOS_REGISTRY_URL", "http://localhost:8000")
     asyncio.run(run_stdio_server(registry_url=registry_url))
 
