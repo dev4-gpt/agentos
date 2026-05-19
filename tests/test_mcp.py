@@ -16,7 +16,9 @@ class TestMCPEndpoints:
             "description": "Search tool exposed via MCP",
             "input_schema": {
                 "type": "object",
-                "properties": {"query": {"type": "string", "description": "Search query"}},
+                "properties": {
+                    "query": {"type": "string", "description": "Search query"}
+                },
                 "required": ["query"],
             },
             "endpoint": "http://localhost:9001",
