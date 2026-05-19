@@ -94,7 +94,9 @@ class AgentOSClient:
         resp.raise_for_status()
         return resp.json()
 
-    async def update_agent(self, agent_id: str, updates: dict[str, Any]) -> dict[str, Any]:
+    async def update_agent(
+        self, agent_id: str, updates: dict[str, Any]
+    ) -> dict[str, Any]:
         """Update an existing agent."""
         resp = await self._client.put(f"/agents/{agent_id}", json=updates)
         resp.raise_for_status()
