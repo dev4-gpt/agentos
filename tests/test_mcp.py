@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from fastapi.testclient import TestClient
 
 
@@ -17,16 +16,13 @@ class TestMCPEndpoints:
             "description": "Search tool exposed via MCP",
             "input_schema": {
                 "type": "object",
-                "properties": {
-                    "query": {"type": "string", "description": "Search query"}
-                },
+                "properties": {"query": {"type": "string", "description": "Search query"}},
                 "required": ["query"],
             },
             "endpoint": "http://localhost:9001",
             "protocols": ["mcp"],
         }
         client.post("/tools", json=payload)
-
         response = client.get("/mcp/tools/list")
         assert response.status_code == 200
         data = response.json()
@@ -42,16 +38,13 @@ class TestMCPEndpoints:
             "description": "Echoes input back",
             "input_schema": {
                 "type": "object",
-                "properties": {
-                    "message": {"type": "string"}
-                },
+                "properties": {"message": {"type": "string"}},
                 "required": ["message"],
             },
             "endpoint": "http://localhost:9001",
             "protocols": ["mcp"],
         }
         client.post("/tools", json=payload)
-
         call_payload = {
             "name": "echo-tool",
             "arguments": {"message": "hello world"},
@@ -74,7 +67,6 @@ class TestMCPEndpoints:
             "protocols": ["mcp"],
         }
         client.post("/agents", json=payload)
-
         response = client.get("/mcp/agents/list")
         assert response.status_code == 200
         data = response.json()
