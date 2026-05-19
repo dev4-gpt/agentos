@@ -1,6 +1,7 @@
 """Tests for the MCP (Model Context Protocol) server endpoints."""
 
 from __future__ import annotations
+
 from fastapi.testclient import TestClient
 
 
@@ -21,6 +22,7 @@ class TestMCPEndpoints:
             "endpoint": "http://localhost:9001",
             "protocols": ["mcp"],
         }
+
         client.post("/tools", json=payload)
 
         response = client.get("/mcp/tools/list")
@@ -44,12 +46,16 @@ class TestMCPEndpoints:
             "endpoint": "http://localhost:9001",
             "protocols": ["mcp"],
         }
+
         client.post("/tools", json=payload)
+
         call_payload = {
             "name": "echo-tool",
             "arguments": {"message": "hello world"},
         }
+
         response = client.post("/mcp/tools/call", json=call_payload)
+
         # Should return 200 or a proxy error - not 404/405
         assert response.status_code != 404
         assert response.status_code != 405
@@ -66,7 +72,9 @@ class TestMCPEndpoints:
             "endpoint": "http://localhost:9002",
             "protocols": ["mcp"],
         }
+
         client.post("/agents", json=payload)
+
         response = client.get("/mcp/agents/list")
         assert response.status_code == 200
         data = response.json()
@@ -79,7 +87,9 @@ class TestMCPEndpoints:
             "capabilities": {},
             "clientInfo": {"name": "test-client", "version": "1.0.0"},
         }
+
         response = client.post("/mcp/initialize", json=payload)
+
         assert response.status_code == 200
         data = response.json()
         assert "protocolVersion" in data
