@@ -1,7 +1,6 @@
 """Tests for the MCP (Model Context Protocol) server endpoints."""
 
 from __future__ import annotations
-
 from fastapi.testclient import TestClient
 
 
@@ -23,6 +22,7 @@ class TestMCPEndpoints:
             "protocols": ["mcp"],
         }
         client.post("/tools", json=payload)
+
         response = client.get("/mcp/tools/list")
         assert response.status_code == 200
         data = response.json()
