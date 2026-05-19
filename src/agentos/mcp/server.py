@@ -3,8 +3,8 @@
 Implements a Model Context Protocol (MCP) server that bridges the AgentOS
 Registry API with MCP-compatible AI clients (Claude, etc.).
 """
-from __future__ import annotations
 
+from __future__ import annotations
 import asyncio
 import json
 import logging
@@ -89,13 +89,10 @@ def mcp_tool_call_response(
 
 
 async def run_stdio_server(registry_url: str = "http://localhost:8000") -> None:
-    """Run a simple line-delimited JSON MCP server over stdio.
-    Each line of stdin is a JSON-RPC 2.0 request; responses are written to
-    stdout. This is the minimal transport required by the MCP spec for
-    local tool use with Claude Desktop.
-    """
+    """Run a simple line-delimited JSON MCP server over stdio. Each line of stdin is a JSON-RPC 2.0 request; responses are written to stdout. This is the minimal transport required by the MCP spec for local tool use with Claude Desktop."""
     registry = RegistryClient(base_url=registry_url)
     logger.info("AgentOS MCP stdio server started (registry=%s)", registry_url)
+
     for raw_line in sys.stdin:
         raw_line = raw_line.strip()
         if not raw_line:
@@ -114,6 +111,7 @@ async def run_stdio_server(registry_url: str = "http://localhost:8000") -> None:
         req_id = request.get("id")
         method = request.get("method", "")
         params = request.get("params", {})
+
         try:
             if method == "initialize":
                 result = mcp_initialize_response(
@@ -131,7 +129,9 @@ async def run_stdio_server(registry_url: str = "http://localhost:8000") -> None:
                 result = {"agents": agents}
             else:
                 raise ValueError(f"Unknown method: {method}")
+
             response = {"jsonrpc": "2.0", "id": req_id, "result": result}
+
         except Exception as exc:  # noqa: BLE001
             logger.exception("Error handling method %s", method)
             response = {
