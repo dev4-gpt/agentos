@@ -45,6 +45,7 @@ class RegistryClient:
             resp.raise_for_status()
             return resp.json().get("agents", [])
 
+
 # ---------------------------------------------------------------------------
 # MCP handler functions (used by registry /mcp/* endpoints AND standalone)
 # ---------------------------------------------------------------------------
@@ -69,9 +70,7 @@ def mcp_initialize_response(protocol_version: str = "2024-11-05") -> Dict[str, A
     }
 
 
-def mcp_tool_call_response(
-    tool_name: str, arguments: Dict[str, Any]
-) -> Dict[str, Any]:
+def mcp_tool_call_response(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
     """Build a minimal MCP tool call response."""
     return {
         "content": [
@@ -82,6 +81,7 @@ def mcp_tool_call_response(
         ],
         "isError": False,
     }
+
 
 # ---------------------------------------------------------------------------
 # Standalone async runner (stdio-based MCP server via httpx bridge)
@@ -144,9 +144,7 @@ async def run_stdio_server(registry_url: str = "http://localhost:8000") -> None:
 
 def main() -> None:
     """Entry point for the AgentOS MCP stdio server."""
-    registry_url = os.environ.get(
-        "AGENTOS_REGISTRY_URL", "http://localhost:8000"
-    )
+    registry_url = os.environ.get("AGENTOS_REGISTRY_URL", "http://localhost:8000")
     asyncio.run(run_stdio_server(registry_url=registry_url))
 
 
