@@ -1,4 +1,5 @@
 """AgentOS CLI - Command-line interface for the AgentOS Registry."""
+
 from __future__ import annotations
 from typing import Optional
 
@@ -14,16 +15,20 @@ from ..sdk import AgentOSClient
 app = typer.Typer(name="agentos", help="AgentOS CLI - Manage agents and tools")
 console = Console()
 
+
 def _ensure_json(data: object) -> str:
     if isinstance(data, (dict, list)):
         return json.dumps(data, indent=2, default=str)
     return str(data)
 
+
 def _print_json(data: object) -> None:
     console.print_json(_ensure_json(data))
 
+
 def get_client(registry_url: str) -> AgentOSClient:
     return AgentOSClient(base_url=registry_url)
+
 
 # ---------------------------------------------------------------------------
 # Health
@@ -42,6 +47,7 @@ def health(
             _print_json(result)
 
     asyncio.run(_run())
+
 
 @app.command()
 def register_agent(
@@ -64,6 +70,7 @@ def register_agent(
 
     asyncio.run(_run())
 
+
 @app.command()
 def list_agents(
     registry_url: str = typer.Option(
@@ -81,6 +88,7 @@ def list_agents(
 
     asyncio.run(_run())
 
+
 @app.command()
 def get_agent(
     agent_id: str = typer.Option(..., "--id", "-i", help="Agent ID"),
@@ -96,6 +104,7 @@ def get_agent(
             _print_json(result)
 
     asyncio.run(_run())
+
 
 @app.command()
 def deregister_agent(
@@ -113,15 +122,14 @@ def deregister_agent(
 
     asyncio.run(_run())
 
+
 # ---------------------------------------------------------------------------
 # Tools
 # ---------------------------------------------------------------------------
 @app.command()
 def register_tool(
     name: str = typer.Option(..., "--name", "-n", help="Tool name"),
-    description: str = typer.Option(
-        "", "--description", "-d", help="Tool description"
-    ),
+    description: str = typer.Option("", "--description", "-d", help="Tool description"),
     endpoint: Optional[str] = typer.Option(
         None, "--endpoint", "-e", help="Tool endpoint URL"
     ),
@@ -151,6 +159,7 @@ def register_tool(
 
     asyncio.run(_run())
 
+
 @app.command()
 def list_tools(
     registry_url: str = typer.Option(
@@ -165,6 +174,7 @@ def list_tools(
             _print_json({"tools": tools})
 
     asyncio.run(_run())
+
 
 # ---------------------------------------------------------------------------
 # MCP
@@ -187,6 +197,7 @@ def mcp_init(
 
     asyncio.run(_run())
 
+
 @app.command()
 def mcp_tools(
     registry_url: str = typer.Option(
@@ -202,10 +213,13 @@ def mcp_tools(
 
     asyncio.run(_run())
 
+
 @app.command()
 def mcp_call(
     tool_name: str = typer.Option(..., "--name", "-n", help="Tool name to call"),
-    args_json: str = typer.Option("{}", "--args", "-a", help="JSON arguments for the tool"),
+    args_json: str = typer.Option(
+        "{}", "--args", "-a", help="JSON arguments for the tool"
+    ),
     registry_url: str = typer.Option(
         "http://localhost:8000", "--registry", "-r", help="Registry URL"
     ),
@@ -219,6 +233,7 @@ def mcp_call(
             _print_json(result)
 
     asyncio.run(_run())
+
 
 @app.command()
 def mcp_agents(
@@ -235,6 +250,7 @@ def mcp_agents(
 
     asyncio.run(_run())
 
+
 @app.command()
 def mcp_serve(
     registry_url: str = typer.Option(
@@ -246,6 +262,7 @@ def mcp_serve(
     from ..mcp import server as mcp_server
 
     mcp_server.main()
+
 
 if __name__ == "__main__":
     app()
