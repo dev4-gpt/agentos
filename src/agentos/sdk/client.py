@@ -1,7 +1,9 @@
 """AgentOS Python SDK Client. Provides a synchronous and asynchronous interface to the AgentOS Registry API."""
 
 from __future__ import annotations
-from typing import Any, dict, list, Optional
+
+from typing import Any, Optional
+
 import httpx
 
 
@@ -17,6 +19,7 @@ class AgentOSClient:
 
         client = AgentOSClient()
         health = client.health_sync()
+
     """
 
     def __init__(
@@ -27,9 +30,11 @@ class AgentOSClient:
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self._timeout = timeout
+
         headers: dict[str, str] = {}
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
+
         self._client = httpx.AsyncClient(
             base_url=self.base_url,
             timeout=timeout,
@@ -51,9 +56,8 @@ class AgentOSClient:
         await self._client.aclose()
         self._sync_client.close()
 
-    # ------------------------------------------------------------------
     # Health
-    # ------------------------------------------------------------------
+
     async def health(self) -> dict[str, Any]:
         """Return API health status."""
         resp = await self._client.get("/health")
@@ -65,9 +69,8 @@ class AgentOSClient:
         resp.raise_for_status()
         return resp.json()
 
-    # ------------------------------------------------------------------
     # Agents
-    # ------------------------------------------------------------------
+
     async def list_agents(
         self,
         page: int = 1,
@@ -107,9 +110,8 @@ class AgentOSClient:
         resp = await self._client.delete(f"/agents/{agent_id}")
         resp.raise_for_status()
 
-    # ------------------------------------------------------------------
     # Agent-scoped Tools
-    # ------------------------------------------------------------------
+
     async def list_agent_tools(self, agent_id: str) -> list[dict[str, Any]]:
         """List tools for a specific agent."""
         resp = await self._client.get(f"/agents/{agent_id}/tools")
@@ -126,9 +128,8 @@ class AgentOSClient:
         resp.raise_for_status()
         return resp.json()
 
-    # ------------------------------------------------------------------
     # Global Tools
-    # ------------------------------------------------------------------
+
     async def list_tools(self) -> list[dict[str, Any]]:
         """List all globally registered tools."""
         resp = await self._client.get("/tools")
@@ -153,9 +154,8 @@ class AgentOSClient:
         resp.raise_for_status()
         return resp.json()
 
-    # ------------------------------------------------------------------
     # MCP endpoints
-    # ------------------------------------------------------------------
+
     async def mcp_initialize(
         self,
         protocol_version: str = "2024-11-05",
@@ -192,3 +192,16 @@ class AgentOSClient:
         resp = await self._client.get("/mcp/agents/list")
         resp.raise_for_status()
         return resp.json().get("agents", [])
+
+
+def create_client(
+    base_url: str = "http://localhost:8000",
+    timeout: float = 30.0,
+    api_key: Optional[str] = None,
+) -> AgentOSClient:
+    """Create an AgentOSClient factory function."""
+    return AgentOSClient(
+        base_url=base_url,
+        timeout=timeout,
+        api_key=api_key,
+    )
