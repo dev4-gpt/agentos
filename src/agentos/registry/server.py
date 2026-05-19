@@ -1,4 +1,5 @@
 """AgentOS Registry API Server. FastAPI application implementing the Agent Registry API as defined in api/spec.yaml. Provides CRUD operations for agents, tools, and capabilities."""
+
 from __future__ import annotations
 
 import time
