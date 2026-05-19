@@ -13,6 +13,7 @@ RUN pip install uv
 
 # Copy dependency files
 COPY pyproject.toml ./
+COPY README.md ./
 
 # Install production dependencies
 RUN uv pip install --system --no-cache .
