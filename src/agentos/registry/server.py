@@ -1,9 +1,10 @@
 """AgentOS Registry API Server.
+
 FastAPI application implementing the Agent Registry API as defined in
 api/spec.yaml. Provides CRUD operations for agents, tools, and capabilities.
 """
-
 from __future__ import annotations
+
 import time
 import uuid
 from datetime import datetime
@@ -38,7 +39,6 @@ class ToolRecord(BaseModel):
     endpoint: Optional[str] = None
     protocols: Optional[List[str]] = None
     created_at: Optional[str] = None
-
 
 # ---------------------------------------------------------------------------
 # App factory
@@ -184,7 +184,9 @@ def create_app() -> FastAPI:
     # -----------------------------------------------------------------------
     # Tools
     # -----------------------------------------------------------------------
-    @app.get("/agents/{agent_id}/tools", response_model=List[Tool], tags=["tools"])
+    @app.get(
+        "/agents/{agent_id}/tools", response_model=List[Tool], tags=["tools"]
+    )
     async def list_tools(agent_id: str) -> List[Tool]:
         """List all tools for an agent."""
         if agent_id not in agents:
@@ -194,7 +196,10 @@ def create_app() -> FastAPI:
         return agents[agent_id].tools
 
     @app.post(
-        "/agents/{agent_id}/tools", response_model=Tool, status_code=status.HTTP_201_CREATED, tags=["tools"]
+        "/agents/{agent_id}/tools",
+        response_model=Tool,
+        status_code=status.HTTP_201_CREATED,
+        tags=["tools"],
     )
     async def register_tool(agent_id: str, tool: Tool) -> Tool:
         """Register a new tool for an agent."""
@@ -233,7 +238,9 @@ def create_app() -> FastAPI:
     # Capabilities
     # -----------------------------------------------------------------------
     @app.get(
-        "/agents/{agent_id}/capabilities", response_model=List[Capability], tags=["capabilities"]
+        "/agents/{agent_id}/capabilities",
+        response_model=List[Capability],
+        tags=["capabilities"],
     )
     async def list_capabilities(agent_id: str) -> List[Capability]:
         """List all capabilities for an agent."""
@@ -335,7 +342,6 @@ def create_app() -> FastAPI:
         return {"agents": list(agents.values())}
 
     return app
-
 
 # ---------------------------------------------------------------------------
 # Application instance (used by uvicorn)
