@@ -16,10 +16,11 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-
 # ---------------------------------------------------------------------------
 # Registry HTTP client (thin wrapper around the REST API)
 # ---------------------------------------------------------------------------
+
+
 class RegistryClient:
     """Thin async HTTP client for the AgentOS Registry API."""
 
@@ -44,10 +45,11 @@ class RegistryClient:
             resp.raise_for_status()
             return resp.json().get("agents", [])
 
-
 # ---------------------------------------------------------------------------
 # MCP handler functions (used by registry /mcp/* endpoints AND standalone)
 # ---------------------------------------------------------------------------
+
+
 def build_mcp_tool_entry(tool: Dict[str, Any]) -> Dict[str, Any]:
     """Convert a ToolRecord dict to MCP tool format."""
     return {
@@ -81,20 +83,19 @@ def mcp_tool_call_response(
         "isError": False,
     }
 
-
 # ---------------------------------------------------------------------------
 # Standalone async runner (stdio-based MCP server via httpx bridge)
 # ---------------------------------------------------------------------------
+
+
 async def run_stdio_server(registry_url: str = "http://localhost:8000") -> None:
     """Run a simple line-delimited JSON MCP server over stdio.
-
     Each line of stdin is a JSON-RPC 2.0 request; responses are written to
     stdout. This is the minimal transport required by the MCP spec for
     local tool use with Claude Desktop.
     """
     registry = RegistryClient(base_url=registry_url)
     logger.info("AgentOS MCP stdio server started (registry=%s)", registry_url)
-
     for raw_line in sys.stdin:
         raw_line = raw_line.strip()
         if not raw_line:
@@ -113,7 +114,6 @@ async def run_stdio_server(registry_url: str = "http://localhost:8000") -> None:
         req_id = request.get("id")
         method = request.get("method", "")
         params = request.get("params", {})
-
         try:
             if method == "initialize":
                 result = mcp_initialize_response(
@@ -144,7 +144,9 @@ async def run_stdio_server(registry_url: str = "http://localhost:8000") -> None:
 
 def main() -> None:
     """Entry point for the AgentOS MCP stdio server."""
-    registry_url = os.environ.get("AGENTOS_REGISTRY_URL", "http://localhost:8000")
+    registry_url = os.environ.get(
+        "AGENTOS_REGISTRY_URL", "http://localhost:8000"
+    )
     asyncio.run(run_stdio_server(registry_url=registry_url))
 
 
