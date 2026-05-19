@@ -14,12 +14,11 @@ RUN pip install uv
 # Copy dependency files
 COPY pyproject.toml ./
 COPY README.md ./
+COPY src/ ./src/
 
 # Install production dependencies
 RUN uv pip install --system --no-cache .
 
-# Copy source code
-COPY src/ ./src/
 
 # Create non-root user
 RUN useradd -m -u 1000 agentos && chown -R agentos:agentos /app
