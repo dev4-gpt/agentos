@@ -28,10 +28,11 @@ def get_client(registry_url: str) -> AgentOSClient:
 # ---------------------------------------------------------------------------
 # Health
 # ---------------------------------------------------------------------------
-
 @app.command()
 def health(
-    registry_url: str = typer.Option("http://localhost:8000", "--registry", "-r", help="Registry URL"),
+    registry_url: str = typer.Option(
+        "http://localhost:8000", "--registry", "-r", help="Registry URL"
+    ),
 ) -> None:
     """Check the health of the AgentOS Registry."""
 
@@ -45,21 +46,29 @@ def health(
 @app.command()
 def register_agent(
     name: str = typer.Option(..., "--name", "-n", help="Agent name"),
-    description: str = typer.Option("", "--description", "-d", help="Agent description"),
-    registry_url: str = typer.Option("http://localhost:8000", "--registry", "-r", help="Registry URL"),
+    description: str = typer.Option(
+        "", "--description", "-d", help="Agent description"
+    ),
+    registry_url: str = typer.Option(
+        "http://localhost:8000", "--registry", "-r", help="Registry URL"
+    ),
 ) -> None:
     """Register a new agent."""
 
     async def _run() -> None:
         async with get_client(registry_url) as client:
-            result = await client.register_agent({"name": name, "description": description})
+            result = await client.register_agent(
+                {"name": name, "description": description}
+            )
             _print_json(result)
 
     asyncio.run(_run())
 
 @app.command()
 def list_agents(
-    registry_url: str = typer.Option("http://localhost:8000", "--registry", "-r", help="Registry URL"),
+    registry_url: str = typer.Option(
+        "http://localhost:8000", "--registry", "-r", help="Registry URL"
+    ),
     page: int = typer.Option(1, "--page", "-p", help="Page number"),
     page_size: int = typer.Option(20, "--page-size", "-s", help="Page size"),
 ) -> None:
@@ -75,7 +84,9 @@ def list_agents(
 @app.command()
 def get_agent(
     agent_id: str = typer.Option(..., "--id", "-i", help="Agent ID"),
-    registry_url: str = typer.Option("http://localhost:8000", "--registry", "-r", help="Registry URL"),
+    registry_url: str = typer.Option(
+        "http://localhost:8000", "--registry", "-r", help="Registry URL"
+    ),
 ) -> None:
     """Get details for a specific agent."""
 
@@ -89,7 +100,9 @@ def get_agent(
 @app.command()
 def deregister_agent(
     agent_id: str = typer.Option(..., "--id", "-i", help="Agent ID"),
-    registry_url: str = typer.Option("http://localhost:8000", "--registry", "-r", help="Registry URL"),
+    registry_url: str = typer.Option(
+        "http://localhost:8000", "--registry", "-r", help="Registry URL"
+    ),
 ) -> None:
     """Remove an agent from the registry."""
 
@@ -103,14 +116,21 @@ def deregister_agent(
 # ---------------------------------------------------------------------------
 # Tools
 # ---------------------------------------------------------------------------
-
 @app.command()
 def register_tool(
     name: str = typer.Option(..., "--name", "-n", help="Tool name"),
-    description: str = typer.Option("", "--description", "-d", help="Tool description"),
-    endpoint: Optional[str] = typer.Option(None, "--endpoint", "-e", help="Tool endpoint URL"),
-    schema_file: Optional[str] = typer.Option(None, "--schema", "-s", help="JSON schema file path"),
-    registry_url: str = typer.Option("http://localhost:8000", "--registry", "-r", help="Registry URL"),
+    description: str = typer.Option(
+        "", "--description", "-d", help="Tool description"
+    ),
+    endpoint: Optional[str] = typer.Option(
+        None, "--endpoint", "-e", help="Tool endpoint URL"
+    ),
+    schema_file: Optional[str] = typer.Option(
+        None, "--schema", "-s", help="JSON schema file path"
+    ),
+    registry_url: str = typer.Option(
+        "http://localhost:8000", "--registry", "-r", help="Registry URL"
+    ),
 ) -> None:
     """Register a standalone tool in the global tools registry."""
     input_schema: dict = {}
@@ -133,7 +153,9 @@ def register_tool(
 
 @app.command()
 def list_tools(
-    registry_url: str = typer.Option("http://localhost:8000", "--registry", "-r", help="Registry URL"),
+    registry_url: str = typer.Option(
+        "http://localhost:8000", "--registry", "-r", help="Registry URL"
+    ),
 ) -> None:
     """List all globally registered tools."""
 
@@ -147,11 +169,14 @@ def list_tools(
 # ---------------------------------------------------------------------------
 # MCP
 # ---------------------------------------------------------------------------
-
 @app.command()
 def mcp_init(
-    registry_url: str = typer.Option("http://localhost:8000", "--registry", "-r", help="Registry URL"),
-    protocol_version: str = typer.Option("2024-11-05", "--protocol", "-p", help="MCP protocol version"),
+    registry_url: str = typer.Option(
+        "http://localhost:8000", "--registry", "-r", help="Registry URL"
+    ),
+    protocol_version: str = typer.Option(
+        "2024-11-05", "--protocol", "-p", help="MCP protocol version"
+    ),
 ) -> None:
     """Perform MCP initialize handshake with the registry."""
 
@@ -164,7 +189,9 @@ def mcp_init(
 
 @app.command()
 def mcp_tools(
-    registry_url: str = typer.Option("http://localhost:8000", "--registry", "-r", help="Registry URL"),
+    registry_url: str = typer.Option(
+        "http://localhost:8000", "--registry", "-r", help="Registry URL"
+    ),
 ) -> None:
     """List tools in MCP format."""
 
@@ -179,7 +206,9 @@ def mcp_tools(
 def mcp_call(
     tool_name: str = typer.Option(..., "--name", "-n", help="Tool name to call"),
     args_json: str = typer.Option("{}", "--args", "-a", help="JSON arguments for the tool"),
-    registry_url: str = typer.Option("http://localhost:8000", "--registry", "-r", help="Registry URL"),
+    registry_url: str = typer.Option(
+        "http://localhost:8000", "--registry", "-r", help="Registry URL"
+    ),
 ) -> None:
     """Call a tool via MCP."""
     arguments: dict = json.loads(args_json) if args_json else {}
@@ -193,7 +222,9 @@ def mcp_call(
 
 @app.command()
 def mcp_agents(
-    registry_url: str = typer.Option("http://localhost:8000", "--registry", "-r", help="Registry URL"),
+    registry_url: str = typer.Option(
+        "http://localhost:8000", "--registry", "-r", help="Registry URL"
+    ),
 ) -> None:
     """List agents in MCP format."""
 
@@ -206,7 +237,9 @@ def mcp_agents(
 
 @app.command()
 def mcp_serve(
-    registry_url: str = typer.Option("http://localhost:8000", "--registry", "-r", help="Registry URL"),
+    registry_url: str = typer.Option(
+        "http://localhost:8000", "--registry", "-r", help="Registry URL"
+    ),
 ) -> None:
     """Serve the MCP stdio server."""
     os.environ["AGENTOS_REGISTRY_URL"] = registry_url
