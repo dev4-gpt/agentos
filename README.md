@@ -415,4 +415,118 @@ For major features, open an issue first to discuss.
 
 ---
 
+## 🚀 Production Deployment (GCP)
+
+### Live Instance
+
+**Production URL:** https://agentos-1028728465669.europe-west1.run.app
+
+- **Status:** ✅ Live and Running
+- **Platform:** Google Cloud Run (Serverless)
+- **Region:** europe-west1 (Belgium)
+- **Auto-scaling:** 0-100 instances
+- **CI/CD:** Automated via Cloud Build
+
+### Infrastructure Stack
+
+```
+GitHub (Source Code)
+  ↓ Webhook on push to main
+Cloud Build (CI/CD Pipeline)
+  ↓ Build Docker image
+Container Registry
+  ↓ Deploy container
+Cloud Run (Serverless Hosting)
+  ↓ Secret injection
+Secret Manager (API Keys)
+  ↓ Data storage
+Firestore (Database)
+```
+
+### Deployment Features
+
+✅ **Zero-Downtime Deployments** - Rolling updates with health checks
+✅ **Automatic Scaling** - Scales to zero when idle (cost = $0)
+✅ **SSL/TLS** - Automatic HTTPS certificates
+✅ **Secret Management** - Secure API key storage via Secret Manager
+✅ **Monitoring** - Cloud Logging and Error Reporting
+✅ **Cost Optimization** - Runs within GCP free tier
+
+### Quick Deploy to Your Own GCP
+
+1. **Fork this repository**
+
+2. **Set up GCP Project:**
+```bash
+gcloud projects create your-agentos-mvp
+gcloud config set project your-agentos-mvp
+```
+
+3. **Enable Required APIs:**
+```bash
+gcloud services enable run.googleapis.com \
+  cloudbuild.googleapis.com \
+  secretmanager.googleapis.com \
+  firestore.googleapis.com
+```
+
+4. **Store Secrets:**
+```bash
+echo -n "your-groq-api-key" | gcloud secrets create GROQ_API_KEY --data-file=-
+```
+
+5. **Connect GitHub Repository:**
+   - Go to Cloud Build → Triggers
+   - Click "Connect Repository"
+   - Select your forked repo
+   - Create trigger on `main` branch push
+
+6. **Deploy:**
+```bash
+gcloud run deploy agentos \
+  --source . \
+  --region europe-west1 \
+  --allow-unauthenticated \
+  --set-secrets GROQ_API_KEY=GROQ_API_KEY:latest
+```
+
+### Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `GROQ_API_KEY` | GROQ AI API key | ✅ Yes |
+| `PORT` | Container port (default: 8080) | Auto-set |
+| `FIRESTORE_PROJECT` | GCP project ID | Auto-set |
+
+### Cost Estimates
+
+**Free Tier Limits:**
+- Cloud Run: 2M requests/month
+- Cloud Build: 120 build-minutes/day
+- Secret Manager: 6 active secrets
+- Firestore: 1GB storage + 50K reads/day
+
+**Expected Monthly Cost:** $0 (within free tier)
+
+**If exceeding free tier:**
+- Cloud Run: ~$0.10 per 100K requests
+- Storage: ~$0.026/GB/month
+
+### Monitoring & Logs
+
+**View Logs:**
+```bash
+gcloud run logs read agentos --region europe-west1 --limit 50
+```
+
+**Health Check:**
+```bash
+curl https://your-service.run.app/health
+```
+
+**API Documentation:**
+```bash
+https://your-service.run.app/docs
+```
+
 **Built with ❤️ for the AI agent ecosystem** | [GitHub](https://github.com/dev4-gpt/agentos) | Star ⭐ if useful!
