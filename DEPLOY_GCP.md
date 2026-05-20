@@ -4,6 +4,43 @@
 
 ---
 
+## ✅ Live Production Instance
+
+**Our deployed AgentOS is currently running at:**
+
+🌐 **Production URL:** https://agentos-1028728465669.europe-west1.run.app
+
+- **API Documentation:** https://agentos-1028728465669.europe-west1.run.app/docs
+- **Health Check:** https://agentos-1028728465669.europe-west1.run.app/health
+- **Region:** europe-west1 (Belgium)
+- **Platform:** Cloud Run (Serverless)
+- **Status:** ✅ Live and Running
+- **Auto-scaling:** 0-100 instances
+- **Cost:** $0/month (within free tier)
+
+### Deployment Details
+
+- **Project ID:** agentos-mvp
+- **Service Name:** agentos
+- **Build Trigger:** Automated via Cloud Build on push to `main`
+- **Secrets:** GROQ_API_KEY (stored in Secret Manager)
+- **Database:** Firestore
+- **CI/CD:** GitHub → Cloud Build → Cloud Run
+
+### Quick Test
+
+```bash
+# Check health
+curl https://agentos-1028728465669.europe-west1.run.app/health
+
+# View API docs
+open https://agentos-1028728465669.europe-west1.run.app/docs
+```
+
+
+
+---
+
 ## 🎯 What You Get with GCP Free Tier
 
 ### Always-Free (Never Expires)
