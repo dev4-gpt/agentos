@@ -744,9 +744,9 @@ def create_app() -> FastAPI:
                 "resources": {"subscribe": False, "listChanged": False},
                 "prompts": {"listChanged": False},
             },
-            748 "agentos-registry", "version": "1.0.0"},
-        }
-
+            "serverInfo": {"name": "agentos-registry", "version": "1.0.0"}
+        },
+            
     @app.get("/mcp/tools/list", tags=["mcp"])
     async def mcp_list_tools() -> dict:
         """MCP tools/list - return tools in MCP format."""
