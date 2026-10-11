@@ -52,6 +52,33 @@ def walk(node, trail=()):
             yield from walk(v, trail)
 
 
+def plain_text(desc):
+    """Skool stores rich text as '[v2]<json>'; flatten it to plain text (best effort)."""
+    if not isinstance(desc, str):
+        return ""
+    if not desc.startswith("[v2]"):
+        return desc
+    try:
+        tree = json.loads(desc[4:])
+    except ValueError:
+        return desc
+
+    def texts(n):
+        if isinstance(n, dict):
+            if isinstance(n.get("text"), str):
+                yield n["text"]
+            for v in n.values():
+                if isinstance(v, (list, dict)):
+                    yield from texts(v)
+            if n.get("type") in ("paragraph", "heading", "listItem"):
+                yield "\n"
+        elif isinstance(n, list):
+            for v in n:
+                yield from texts(v)
+
+    return "".join(texts(tree)).strip()
+
+
 def course_links(page, slug):
     """All /classroom/<id> links, clicking through every tab on the classroom page."""
     pat = re.compile(rf"/{re.escape(slug)}/classroom/([^/?#]+)")
@@ -114,6 +141,8 @@ def main():
                         "course_id": cid,
                         "course_url": url,
                         "lesson": " > ".join(trail[-2:]),
+                        "title": d.get("title") or d.get("name") or "",
+                        "description": plain_text(d.get("desc") or d.get("description")),
                         "video_link": link,
                         "hosted_video_id": "" if link else mux,
                         "lesson_id": d.get("id", ""),
@@ -124,7 +153,7 @@ def main():
                     "iframe, video, source", "els => els.map(e => e.src).filter(Boolean)"
                 ):
                     rows.append({"course_id": cid, "course_url": url, "lesson": "",
-                                 "video_link": src, "hosted_video_id": "", "lesson_id": ""})
+                                 "title": "", "description": "", "video_link": src, "hosted_video_id": "", "lesson_id": ""})
             print(f"  {cid}: {len(rows) - before} videos", file=sys.stderr)
         ctx.close()
 
@@ -132,7 +161,7 @@ def main():
     out.with_suffix(".json").write_text(json.dumps(rows, indent=2))
     with out.with_suffix(".csv").open("w", newline="") as f:
         w = csv.DictWriter(
-            f, fieldnames=["course_id", "course_url", "lesson", "video_link", "hosted_video_id", "lesson_id"]
+            f, fieldnames=["course_id", "course_url", "lesson", "title", "description", "video_link", "hosted_video_id", "lesson_id"]
         )
         w.writeheader()
         w.writerows(rows)
